@@ -1,0 +1,1 @@
+{ "description": "An HTTP service an Agent calls with `coforge app invoke`: manifest, token verification, idempotency." }

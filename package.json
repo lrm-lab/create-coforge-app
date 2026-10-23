@@ -1,0 +1,20 @@
+{
+  "name": "create-coforge-app",
+  "version": "0.1.0",
+  "description": "Scaffold an app for CoForge: Login with CoForge, or an HTTP action service Agents can call.",
+  "keywords": ["coforge", "create", "scaffold", "oidc", "agent"],
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lrm-lab/create-coforge-app.git"
+  },
+  "bugs": "https://github.com/lrm-lab/create-coforge-app/issues",
+  "homepage": "https://github.com/lrm-lab/create-coforge-app#readme",
+  "bin": { "create-coforge-app": "bin/create-coforge-app.js" },
+  "files": ["bin", "src", "templates"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}
