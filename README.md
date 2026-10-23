@@ -1,4 +1,4 @@
-<p align="center"><img src="https://raw.githubusercontent.com/lrm-lab/create-coforge-app/main/assets/coforge-mark.png" alt="CoForge" width="128"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/lrm-lab/create-coforge-app/main/assets/coforge-logo-dark.svg"><img src="https://raw.githubusercontent.com/lrm-lab/create-coforge-app/main/assets/coforge-logo-light.svg" alt="CoForge" width="128"></picture></p>
 
 # create-coforge-app
 
