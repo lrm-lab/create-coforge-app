@@ -1,0 +1,4 @@
+{
+  "description": "One hosted app with a browser workspace, CoForge login, and HTTP actions for Agents.",
+  "base": "oauth-http-action-service"
+}

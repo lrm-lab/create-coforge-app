@@ -17,15 +17,22 @@ const run = async (args, cwd) => {
   return { code, stdout: stdout.text, stderr: stderr.text };
 };
 const tmp = () => mkdtemp(join(tmpdir(), "create-coforge-app-"));
+const templates = [
+  "hosted-dual-human-agent-app",
+  "hosted-http-action-service",
+  "local-cli-wrapper",
+  "oauth-http-action-service",
+  "pure-sign-in-web-app",
+];
 
-test("--list-templates names both templates", async () => {
+test("--list-templates names all five templates", async () => {
   const { code, stdout } = await run(["--list-templates"], await tmp());
   assert.equal(code, 0);
-  assert.match(stdout, /pure-sign-in-web-app/);
-  assert.match(stdout, /hosted-http-action-service/);
+  const names = stdout.trimEnd().split("\n").filter((line) => !line.startsWith(" "));
+  assert.deepEqual(names, templates);
 });
 
-for (const template of ["pure-sign-in-web-app", "hosted-http-action-service"]) {
+for (const template of templates) {
   test(`scaffolds ${template} with placeholders filled`, async () => {
     const cwd = await tmp();
     const { code, stdout } = await run(["My App", "--template", template], cwd);
@@ -33,14 +40,17 @@ for (const template of ["pure-sign-in-web-app", "hosted-http-action-service"]) {
     assert.match(stdout, /Next steps/);
     const dir = join(cwd, "My App");
     const files = await readdir(dir);
-    for (const expected of [".gitignore", ".env.example", "README.md", "AGENTS.md", "package.json", "test"]) {
+    for (const expected of [".gitignore", "README.md", "AGENTS.md", "package.json", "test"]) {
       assert.ok(files.includes(expected), `${expected} present`);
     }
     assert.ok(!files.includes("_gitignore") && !files.includes("template.json"));
     const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8"));
     assert.equal(pkg.name, "my-app");
-    for (const file of ["README.md", "AGENTS.md", ".env.example", "src/server.js"]) {
-      assert.doesNotMatch(await readFile(join(dir, file), "utf8"), /__(APP_NAME|PACKAGE_NAME)__/, file);
+    const implementation = template === "local-cli-wrapper"
+      ? ["manifest.example.json", "src/cli.js"]
+      : [".env.example", "src/server.js"];
+    for (const file of ["README.md", "AGENTS.md", ...implementation]) {
+      assert.doesNotMatch(await readFile(join(dir, file), "utf8"), /__(APP_NAME|PACKAGE_NAME|COMMAND_NAME)__/, file);
     }
   });
 }

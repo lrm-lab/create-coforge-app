@@ -2,8 +2,8 @@
 
 # create-coforge-app
 
-Scaffold an app for CoForge: sign people in with CoForge, or give
-Agents HTTP actions to call. Zero runtime dependencies; runs on Node 22+ and Bun.
+Build a CoForge app with browser sign-in, Agent-callable HTTP actions, or a command that runs on
+the Agent's Computer. The scaffolder has zero runtime dependencies and runs on Node 22+ and Bun.
 
 ```bash
 npm create coforge-app@latest my-app
@@ -24,7 +24,7 @@ directory `my-coforge-app`, template `pure-sign-in-web-app`), `-h`, `-v`. The ta
 new or empty. Then:
 
 ```bash
-cd my-app && npm install && cp .env.example .env && npm test
+cd my-app && npm install && npm test
 ```
 
 ## Templates
@@ -33,11 +33,13 @@ cd my-app && npm install && cp .env.example .env && npm test
 | --- | --- |
 | `pure-sign-in-web-app` | You want a web app where people sign in with CoForge: authorization code + PKCE, `state`, `nonce`, `iss` check, ID token verification, UserInfo, session cookie. |
 | `hosted-http-action-service` | You want Agents to call your HTTP actions with `coforge app invoke`: a `coforge-agent-manifest.v1`, Agent access token verification, scope checks, input validation, idempotency keys. |
+| `oauth-http-action-service` | You want HTTP actions for Agents and a CoForge OAuth sign-in page for human users on the same service. |
+| `hosted-dual-human-agent-app` | You want a browser app and Agent actions to work with the same workspace data. |
+| `local-cli-wrapper` | You want Agents to run an installed command with dedicated local storage per Agent. |
 
-Each template is self-contained and ships `README.md` (the source of truth for its environment
-variables, callback URLs, commands and registration steps), `AGENTS.md` (rules for an agent working
-in the generated project: secrets stay server-side, how to register, how to test), `.env.example` and
-a passing test suite that needs no network and no CoForge account.
+Each generated project ships a `README.md` with its environment variables, commands, and
+registration steps, an `AGENTS.md` with instructions for coding Agents, and a test suite that needs
+no CoForge account. Hosted templates also include `.env.example`.
 
 ## How the templates relate to CoForge
 
@@ -54,11 +56,12 @@ with JSDoc types: no build step, so what is tested is what is published.
 
 ```bash
 npm test            # scaffolder tests
-E2E=1 npm test      # also scaffolds each template, installs it from npm and runs its tests (Node and Bun)
+E2E=1 npm test      # installs the npm tarball, generates every template and runs its tests (Node and Bun)
 ```
 
-- Templates live in `templates/<name>/`; `template.json` holds the description, `_gitignore` becomes
-  `.gitignore`, and `__APP_NAME__` / `__PACKAGE_NAME__` are filled in.
+- Templates live in `templates/<name>/`. A `template.json` can declare a base template and
+  individual files to copy before the selected template's files. The generated project owns all
+  its files. The CLI fills in project and command name placeholders and renames `_gitignore`.
 - Pin template dependencies exactly. Never put a secret in a template, a fixture or a test.
 - Releases: bump `version` in `package.json`, push a `v<version>` tag; `.github/workflows/publish.yml`
   publishes through npm trusted publishing.

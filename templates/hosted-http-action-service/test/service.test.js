@@ -65,6 +65,16 @@ describe("hosted HTTP action service", () => {
     assert.equal(manifest.execution.base_url, `${BASE}/api`);
   });
 
+  test("canonicalizes the homepage before advertising action URLs", async () => {
+    for (const input of [BASE, `${BASE}/`, "HTTPS://NOTES.EXAMPLE.COM:443/"]) {
+      const options = loadConfig({ COFORGE_ISSUER: ISSUER, COFORGE_CLIENT_ID: CLIENT_ID, APP_ORIGIN: input });
+      const app = createApp(options, { keys });
+      const manifest = await (await app.request(`${BASE}/.well-known/coforge-agent-manifest.json`)).json();
+      assert.equal(manifest.app_origin, BASE);
+      assert.equal(manifest.execution.base_url, `${BASE}/api`);
+    }
+  });
+
   describe("access token verification", () => {
     test("no token: 401 with a bare challenge", async () => {
       const res = await call("/api/notes/x");

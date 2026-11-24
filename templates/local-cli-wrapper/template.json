@@ -1,0 +1,7 @@
+{
+  "description": "A locally installed command wrapper with explicitly configured per-Agent storage.",
+  "include": [
+    { "source": "hosted-http-action-service/test/fixtures/coforge-agent-manifest.v1.schema.json", "destination": "test/fixtures/coforge-agent-manifest.v1.schema.json" },
+    { "source": "hosted-http-action-service/test/fixtures/SOURCE.md", "destination": "test/fixtures/SOURCE.md" }
+  ]
+}

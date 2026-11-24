@@ -1,0 +1,7 @@
+{
+  "schema": "coforge-agent-manifest.v1",
+  "name": "__APP_NAME__",
+  "description": "A command installed on the Agent's Computer.",
+  "execution": { "mode": "local_cli", "command": "__COMMAND_NAME__" },
+  "credential_boundary": { "storage": "per_agent_home", "forbid_user_home": true }
+}

@@ -1,0 +1,11 @@
+{
+  "description": "A hosted HTTP action service with an OAuth account page for human users.",
+  "base": "hosted-http-action-service",
+  "include": [
+    { "source": "pure-sign-in-web-app/src/app.js", "destination": "src/web-app.js" },
+    { "source": "pure-sign-in-web-app/src/config.js", "destination": "src/web-config.js" },
+    { "source": "pure-sign-in-web-app/src/oidc.js", "destination": "src/oidc.js" },
+    { "source": "pure-sign-in-web-app/src/views.js", "destination": "src/views.js" },
+    { "source": "pure-sign-in-web-app/.env.example", "destination": ".env.example" }
+  ]
+}

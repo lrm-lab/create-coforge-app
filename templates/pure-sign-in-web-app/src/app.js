@@ -11,9 +11,9 @@ const SESSION_SECONDS = 60 * 60; // CoForge issues no refresh token; sign in aga
 
 /**
  * @param {import("./config.js").Config} config
- * @param {{ client?: ReturnType<typeof createCoforgeClient> }} [deps]
+ * @param {{ client?: ReturnType<typeof createCoforgeClient>, render?: typeof page }} [deps]
  */
-export function createApp(config, { client = createCoforgeClient(config) } = {}) {
+export function createApp(config, { client = createCoforgeClient(config), render = page } = {}) {
   /** Sessions live in memory: fine for a starter, replace with a shared store to run several instances. */
   const sessions = new Map();
 
@@ -34,10 +34,15 @@ export function createApp(config, { client = createCoforgeClient(config) } = {})
   const app = new Hono();
   app.use(secureHeaders());
 
-  app.get("/", (c) => {
+  app.get("/", async (c) => {
     const session = currentSession(c);
     c.header("Cache-Control", "no-store"); // the page shows personal data
-    return c.html(page(session));
+    if (!session?.readProfile) return c.html(render(session));
+    try {
+      return c.html(render({ ...session, profile: await session.readProfile() }));
+    } catch {
+      return c.html(render(undefined, "Couldn't verify your sign-in. Sign in again."), 401);
+    }
   });
 
   app.get("/auth/login", async (c) => {
@@ -52,7 +57,7 @@ export function createApp(config, { client = createCoforgeClient(config) } = {})
   app.get("/auth/callback", async (c) => {
     const raw = await getSignedCookie(c, config.sessionSecret, LOGIN_COOKIE);
     deleteCookie(c, LOGIN_COOKIE, { path: "/" }); // a transaction is single use
-    if (!raw) return c.html(page(undefined, "This sign-in expired. Try again."), 400);
+    if (!raw) return c.html(render(undefined, "This sign-in expired. Try again."), 400);
     try {
       const result = await client.completeAuthorization(new URL(c.req.url).searchParams, JSON.parse(raw));
       const previous = getCookie(c, SESSION_COOKIE);
@@ -63,7 +68,7 @@ export function createApp(config, { client = createCoforgeClient(config) } = {})
       return c.redirect("/");
     } catch (error) {
       console.error("sign-in failed:", error.message); // never log tokens, codes or the secret
-      return c.html(page(undefined, "Sign-in failed. Try again."), 400);
+      return c.html(render(undefined, "Sign-in failed. Try again."), 400);
     }
   });
 

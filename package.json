@@ -1,7 +1,7 @@
 {
   "name": "create-coforge-app",
-  "version": "0.1.0",
-  "description": "Scaffold an app for CoForge: Login with CoForge, or an HTTP action service Agents can call.",
+  "version": "0.1.1",
+  "description": "Scaffold CoForge apps with sign-in, Agent HTTP actions, or a command for the Agent's Computer.",
   "keywords": ["coforge", "create", "scaffold", "oidc", "agent"],
   "license": "MIT",
   "type": "module",

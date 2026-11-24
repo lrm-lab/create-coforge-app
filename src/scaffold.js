@@ -1,5 +1,5 @@
 import { cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 /** Files that npm (or git) would rewrite or drop if shipped under their real name. */
 const RENAMES = { _gitignore: ".gitignore", _npmrc: ".npmrc" };
@@ -28,10 +28,7 @@ export async function scaffold({ templateDir, targetDir }) {
   const existed = await assertEmptyOrMissing(target);
   await mkdir(target, { recursive: true });
   try {
-    await cp(templateDir, target, {
-      recursive: true,
-      filter: (source) => !SKIPPED.has(basename(source)),
-    });
+    await copyTemplate(templateDir, target, new Set());
     return await finish(target);
   } catch (error) {
     // Leave nothing half-copied behind: remove what we made, or empty the directory we were given.
@@ -44,12 +41,28 @@ export async function scaffold({ templateDir, targetDir }) {
   }
 }
 
+async function copyTemplate(dir, target, ancestors) {
+  if (ancestors.has(dir)) throw new Error("Circular template inheritance");
+  ancestors.add(dir);
+  const { base, include = [] } = JSON.parse(await readFile(join(dir, "template.json"), "utf8"));
+  const root = dirname(dir);
+  if (base) await copyTemplate(join(root, base), target, ancestors);
+  for (const { source, destination } of include) {
+    await cp(join(root, source), join(target, destination));
+  }
+  await cp(dir, target, {
+    recursive: true,
+    filter: (source) => !SKIPPED.has(basename(source)),
+  });
+}
+
 /** @param {string} target */
 async function finish(target) {
   // The name lands inside source files, so keep it to plain characters.
   const appName = basename(target).replace(/[^\w .-]+/g, "-") || "coforge-app";
   const packageName = toPackageName(basename(target));
-  const values = { __APP_NAME__: appName, __PACKAGE_NAME__: packageName };
+  const commandName = packageName.replaceAll("~", "-").replace(/^[-.]+/, "").slice(0, 64) || "coforge-app";
+  const values = { __APP_NAME__: appName, __PACKAGE_NAME__: packageName, __COMMAND_NAME__: commandName };
   await fillPlaceholders(target, values);
   return { appName, packageName, targetDir: target };
 }

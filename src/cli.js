@@ -119,8 +119,7 @@ export async function main(argv, io = {}) {
   out("Next steps:");
   if (shown !== ".") out(`  cd ${shown}`);
   out("  npm install        (or: bun install)");
-  out("  cp .env.example .env");
-  out("  read README.md for the CoForge registration steps and the environment variables");
+  out("  read README.md and AGENTS.md for setup and CoForge registration");
   out("  npm test");
   return 0;
 }

@@ -1,9 +1,9 @@
-import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createTokenVerifier, missingScopes } from "./auth.js";
 import { createIdempotencyStore } from "./idempotency.js";
 import { API_PREFIX, MANIFEST_PATH, actions as defaultActions, buildManifest } from "./manifest.js";
+import { createNotes } from "./notes.js";
 import { coerceQuery, validate } from "./validate.js";
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -13,18 +13,14 @@ const MAX_BODY_BYTES = 64 * 1024;
  * lists drift apart. A handler receives validated input and the caller; it returns
  * { status, body }.
  */
-function createHandlers() {
-  /** Notes live in memory, partitioned by Workspace: replace with your database. */
-  const notes = new Map();
-  const forWorkspace = (id) => notes.get(id) ?? notes.set(id, new Map()).get(id);
+export function createHandlers(notes = createNotes()) {
   return {
     "notes.get": ({ id }, caller) => {
-      const note = forWorkspace(caller.workspaceId).get(id);
+      const note = notes.get(caller.workspaceId, id);
       return note ? { status: 200, body: note } : { status: 404, body: { error: "not_found", message: "No such note" } };
     },
     "notes.create": ({ title, body = "" }, caller) => {
-      const note = { id: randomUUID(), title, body };
-      forWorkspace(caller.workspaceId).set(note.id, note);
+      const note = notes.create(caller.workspaceId, { title, body });
       return { status: 201, body: note };
     },
   };

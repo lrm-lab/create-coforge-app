@@ -23,7 +23,7 @@ const atHash = (accessToken) => b64url(createHash("sha256").update(accessToken).
  * code exchange, ID token verification, and UserInfo. It holds no per-person state.
  * @param {import("./config.js").Config} config
  */
-export function createCoforgeClient(config) {
+export function createCoforgeClient(config, { refreshProfiles = false } = {}) {
   let metadataPromise;
   let jwks;
 
@@ -93,10 +93,18 @@ export function createCoforgeClient(config) {
       if (idClaims.nonce !== transaction.nonce) throw new Error("ID token nonce mismatch");
       if (idClaims.at_hash !== atHash(tokens.access_token)) throw new Error("ID token at_hash mismatch");
 
-      const profile = await userInfo(doc, tokens.access_token);
-      // The ID token proves who signed in; UserInfo must describe the same person.
-      if (profile.sub !== idClaims.sub) throw new Error("UserInfo sub does not match the ID token");
-      return { sub: idClaims.sub, authTime: idClaims.auth_time, profile };
+      const readProfile = async () => {
+        const profile = await userInfo(doc, tokens.access_token);
+        if (profile.sub !== idClaims.sub) throw new Error("UserInfo sub does not match the ID token");
+        return profile;
+      };
+      const profile = await readProfile();
+      return {
+        sub: idClaims.sub,
+        authTime: idClaims.auth_time,
+        profile,
+        ...(refreshProfiles ? { readProfile } : {}),
+      };
     },
   };
 

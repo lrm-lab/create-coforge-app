@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { SignJWT, exportJWK, generateKeyPair } from "jose";
 import { createApp } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
+import { createCoforgeClient } from "../src/oidc.js";
 
 // A stand-in CoForge authorization server on a loopback port, following
 // docs/authorization-server: discovery, /auth, /token, /me, /jwks, ES256 ID tokens.
@@ -19,6 +20,7 @@ let issuer;
 let keys;
 const issued = new Map(); // code -> { challenge, nonce }
 let tamper = {}; // per-test ID token overrides
+let userInfoAllowed = true;
 
 function startIdp() {
   const app = new Hono();
@@ -55,7 +57,7 @@ function startIdp() {
     return c.json({ access_token, token_type: "Bearer", expires_in: 3600, id_token, scope: "openid profile identity" });
   });
   app.get("/oidc/me", (c) =>
-    c.req.header("authorization") === "Bearer access-token-1"
+    userInfoAllowed && c.req.header("authorization") === "Bearer access-token-1"
       ? c.json({ sub: "user-1", name: "Ada <b>Lovelace</b>", type: "user", workspace_id: "w1", workspace_slug: "acme", workspace_role: "admin" })
       : c.json({ error: "invalid_token" }, 401),
   );
@@ -143,6 +145,20 @@ describe("Sign in with CoForge", () => {
     assert.match(login.headers.getSetCookie().join("\n"), /Secure/i);
   });
 
+  test("canonicalizes equivalent HTTPS app origins before setting callbacks and cookies", () => {
+    const env = {
+      COFORGE_ISSUER: issuer,
+      COFORGE_CLIENT_ID: CLIENT_ID,
+      COFORGE_CLIENT_SECRET: CLIENT_SECRET,
+      SESSION_SECRET: "k3j9Zq0wX7vB2nL5mR8tY1uC4pD6fG0hJ",
+    };
+    for (const input of ["https://app.example.test", "https://app.example.test/", "HTTPS://APP.EXAMPLE.TEST:443/"]) {
+      const result = loadConfig({ ...env, APP_ORIGIN: input });
+      assert.equal(result.redirectUri, "https://app.example.test/auth/callback");
+      assert.equal(result.secureCookies, true);
+    }
+  });
+
   test("rejects a wrong state", async () => {
     tamper = {};
     const res = await signIn(browser(createApp(config())), {
@@ -195,6 +211,18 @@ describe("Sign in with CoForge", () => {
     await signIn(b2);
     const replay = await app.request(`${APP_ORIGIN}/`, { headers: { cookie: `session=${old}` } });
     assert.match(await replay.text(), /Sign in with CoForge/);
+  });
+
+  test("a page using fresh profiles denies access when UserInfo revokes the session", async (t) => {
+    t.after(() => { userInfoAllowed = true; });
+    const options = config();
+    const b = browser(createApp(options, { client: createCoforgeClient(options, { refreshProfiles: true }) }));
+    assert.equal((await signIn(b)).status, 302);
+    assert.equal((await b.send("/")).status, 200);
+    userInfoAllowed = false;
+    const afterRevoke = await b.send("/");
+    assert.equal(afterRevoke.status, 401);
+    assert.doesNotMatch(await afterRevoke.text(), /Ada/);
   });
 
   test("config refuses placeholder and empty secrets and a bad PORT", () => {

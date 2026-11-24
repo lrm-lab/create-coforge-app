@@ -22,9 +22,9 @@ export function loadConfig(env = process.env) {
   };
 
   const issuer = need("COFORGE_ISSUER");
-  const appOrigin = need("APP_ORIGIN");
   requireOrigin("COFORGE_ISSUER", issuer, { allowPath: true });
-  requireOrigin("APP_ORIGIN", appOrigin, { allowPath: false });
+  const appUrl = requireOrigin("APP_ORIGIN", need("APP_ORIGIN"), { allowPath: false });
+  const appOrigin = appUrl.origin;
   if (issuer.endsWith("/")) throw new Error("COFORGE_ISSUER must not end with a slash");
 
   const sessionSecret = need("SESSION_SECRET");
@@ -49,7 +49,7 @@ export function loadConfig(env = process.env) {
     redirectUri: `${appOrigin}/auth/callback`,
     sessionSecret,
     port,
-    secureCookies: appOrigin.startsWith("https://"),
+    secureCookies: appUrl.protocol === "https:",
   };
 }
 
@@ -67,6 +67,7 @@ function requireOrigin(name, value, { allowPath }) {
   if (url.protocol !== "https:" && !httpOk) {
     throw new Error(`${name} must be https (http is accepted only for localhost)`);
   }
-  if (url.search || url.hash || url.username) throw new Error(`${name} must be a plain URL`);
+  if (url.search || url.hash || url.username || url.password) throw new Error(`${name} must be a plain URL`);
   if (!allowPath && url.pathname !== "/") throw new Error(`${name} must be an origin, without a path`);
+  return url;
 }
